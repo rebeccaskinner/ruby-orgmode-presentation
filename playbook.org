@@ -1,0 +1,62 @@
+#+title: Ruby + Orgmode for Operational Playbooks
+
+* A Quick Orgmode Intro
+
+** Source Code
+
+We can embed source code like this
+
+#+name: sample_request
+#+begin_src ruby :session example :results output
+  require 'net/http'
+  require 'json'
+
+  u = URI('http://localhost:8888/users')
+  results = JSON.parse(Net::HTTP.get(u))
+  puts results
+#+end_src
+
+and when we execute it, we can see the output like this
+
+#+RESULTS: sample_request
+#+begin_example
+pHZTTRywDQPZJfLQiMokqyOGt
+FSoWRwkfBvSQPHyXmUuugbOnm
+zqJmbrOASOCBcqexDMoBnrQZX
+GtvyjmQoLuluGClcorMXQqDyU
+aehaYLqrLYmlOhSXzPMpNCVrI
+GrdQEdpKQtMVzRWtiWTsovgOR
+xbbNlVoozvOcDrfwJkKwQBsgL
+AkgcEtqAxIjKGMRjAwAjaAKkt
+YjVzTOBLIgViYIAijlBdWPUZi
+itRhaVwAcceKuhhMpuOcTMBcF
+eKhuhUWNZJIAvqSPWZBXFNvca
+#+end_example
+
+As long as we're using the same session, we can share variables across runs
+
+#+begin_src ruby :session example :results output
+  puts results.class
+#+end_src
+
+#+RESULTS:
+: Array
+
+We can define variables and pass them into our code blocks
+
+#+name: varcall
+#+begin_src ruby :session example2 :var foo=0 :results output
+puts (foo + 1)
+#+end_src
+
+#+RESULTS:
+: 1
+
+This lets us call functions from other parts of the document
+
+#+CALL: varcall() :var foo=2 :results output
+
+#+RESULTS:
+: 3
+
+* Playbook
