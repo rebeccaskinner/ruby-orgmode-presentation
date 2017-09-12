@@ -16,31 +16,32 @@ We can embed source code like this
   puts results
 #+end_src
 
-and when we execute it, we can see the output like this
-
 #+RESULTS: sample_request
 #+begin_example
-pHZTTRywDQPZJfLQiMokqyOGt
-FSoWRwkfBvSQPHyXmUuugbOnm
-zqJmbrOASOCBcqexDMoBnrQZX
-GtvyjmQoLuluGClcorMXQqDyU
-aehaYLqrLYmlOhSXzPMpNCVrI
-GrdQEdpKQtMVzRWtiWTsovgOR
-xbbNlVoozvOcDrfwJkKwQBsgL
-AkgcEtqAxIjKGMRjAwAjaAKkt
-YjVzTOBLIgViYIAijlBdWPUZi
-itRhaVwAcceKuhhMpuOcTMBcF
-eKhuhUWNZJIAvqSPWZBXFNvca
+cQBWBWYhCShrFqVLeyVcZkiLf
+FAPJntiVwVQzNTkEVWGuGdvvG
+rTnPLFLLngRTIzrFKZAQlhTmS
+aMynrfkBNOPGAquHpZNHfyXFF
+dVXFvccIdWZHQrCjyjVoTLsyi
+mXQhFWQTMfRQwUcqbwIeLswlO
+gxQvZjkjhzgzNFblfIdDpMxwL
+tCpegcwDxHvGpMxkWNUchGZeL
+PprpwXiqLoRatJsGejLOddTBa
+vhMZiGXiKIXWYMJzIxtOvaNXT
+xcuqGEuKYwgLURMZiJxyqgrtM
+wJmnBYAIHgyEBbfbxJVhTpvBS
 #+end_example
+
+and when we execute it, we can see the output like this
 
 As long as we're using the same session, we can share variables across runs
 
 #+begin_src ruby :session example :results output
-  puts results.class
+  puts "hello, #{results.class}"
 #+end_src
 
 #+RESULTS:
-: Array
+: hello, Array
 
 We can define variables and pass them into our code blocks
 
@@ -49,6 +50,12 @@ We can define variables and pass them into our code blocks
 puts (foo + 1)
 #+end_src
 
+#+RESULTS: varcall
+: rTnPLFLLngRTIzrFKZAQlhTmS
+: tCpegcwDxHvGpMxkWNUchGZeL
+: wJmnBYAIHgyEBbfbxJVhTpvBS
+: xcuqGEuKYwgLURMZiJxyqgrtM
+
 #+RESULTS:
 : 1
 
@@ -56,7 +63,161 @@ This lets us call functions from other parts of the document
 
 #+CALL: varcall() :var foo=2 :results output
 
+When we ran this command at <2017-09-11 Mon>
 #+RESULTS:
 : 3
 
+
 * Playbook
+
+We know that we're getting back weird results when users make requests- are they different between regions?
+
+#+name: what_users
+#+begin_src ruby :session demo :results output
+  require 'net/http'
+  require 'json'
+
+  u = URI('http://localhost:8888/1/users')
+  region1 = JSON.parse(Net::HTTP.get(u)).sort
+  puts region1
+
+  puts "============"
+
+  u = URI('http://localhost:8888/2/users')
+  region2 = JSON.parse(Net::HTTP.get(u)).sort
+  puts region2
+#+end_src
+
+#+RESULTS: what_users
+#+begin_example
+FAPJntiVwVQzNTkEVWGuGdvvG
+PprpwXiqLoRatJsGejLOddTBa
+aMynrfkBNOPGAquHpZNHfyXFF
+cQBWBWYhCShrFqVLeyVcZkiLf
+dVXFvccIdWZHQrCjyjVoTLsyi
+gxQvZjkjhzgzNFblfIdDpMxwL
+mXQhFWQTMfRQwUcqbwIeLswlO
+rTnPLFLLngRTIzrFKZAQlhTmS
+tCpegcwDxHvGpMxkWNUchGZeL
+vhMZiGXiKIXWYMJzIxtOvaNXT
+============
+FAPJntiVwVQzNTkEVWGuGdvvG
+PprpwXiqLoRatJsGejLOddTBa
+aMynrfkBNOPGAquHpZNHfyXFF
+cQBWBWYhCShrFqVLeyVcZkiLf
+dVXFvccIdWZHQrCjyjVoTLsyi
+gxQvZjkjhzgzNFblfIdDpMxwL
+mXQhFWQTMfRQwUcqbwIeLswlO
+vhMZiGXiKIXWYMJzIxtOvaNXT
+wJmnBYAIHgyEBbfbxJVhTpvBS
+xcuqGEuKYwgLURMZiJxyqgrtM
+#+end_example
+
+We noticed that there are some difference between the two lists.
+Let's see if we can isolate it down to just the differences on each
+region.
+
+#+name: deltas
+#+begin_src ruby :session demo :results output
+  region_deltas = {
+    :region1 => region1 - region2,
+    :region2 => region2 - region1
+  }
+
+  puts region_deltas
+#+end_src
+
+#+RESULTS: deltas
+: {:region1=>["rTnPLFLLngRTIzrFKZAQlhTmS", "tCpegcwDxHvGpMxkWNUchGZeL"], :region2=>["wJmnBYAIHgyEBbfbxJVhTpvBS", "xcuqGEuKYwgLURMZiJxyqgrtM"]}
+
+
+#+begin_src ruby :session demo :results output
+  u = URI("http://localhost:8888/1/#{region_deltas[:region1][0]}")
+  results = JSON.parse(Net::HTTP.get(u))
+  puts results
+#+end_src
+
+:OUTPUT:
+#+RESULTS:
+: {"username"=>"rTnPLFLLngRTIzrFKZAQlhTmS", "key"=>"tXD19j", "pw"=>"Jw5#1F", "activity"=>["{\"file\":\"/OPPrcbSeXNaznh/CkFArbCBrMTUwlt/vKgZkkmsMYatlfpVxU/LjLiAlooEYsgtZriqfD/TxnMnYdmOEliqDXtjsrDEgy/GzerKqHAxB\",\"timestamp\":\"1975-09-01 20:09:13 +0000\"}", "{\"file\":\"/EpEdhWwqExKaQOnsnQC/qvLjdzPSjgomAovYNfidqVbmZ\",\"timestamp\":\"1973-09-05 11:54:07 +0000\"}", "{\"file\":\"/GVIgjdvrSuSyWlOVsxIH/YqwXyxZgbcbDvpAIWCYpFGh\",\"timestamp\":\"2010-06-22 03:22:34 +0000\"}", "{\"file\":\"/VqZiBOSHwD/jdOhAV/FGNWzpNEcsodOsPxouaue\",\"timestamp\":\"2013-03-06 10:12:14 +0000\"}", "{\"file\":\"/BBqfJOnKgXIUXIvrYJFEw/ofiZpbJ/zjFrBXfQTjrkzHn/WqQjXduBRhUjhnUFOHgR/ODaWr/LJRADLfwgPNtFmdHDYKZUR/sBOUOEqHSVaf/DFAjwiVNsgD/iACPpRHWfGyksbxenPs\",\"timestamp\":\"2004-04-22 00:28:57 +0000\"}", "{\"file\":\"/HFQpNEQYPUuvzJJga/GwvDcNiAYSLtFFDwyewXiQSC/QdAfnzJHgDOOQgOolUMRvWq\",\"timestamp\":\"2010-07-01 18:52:15 +0000\"}", "{\"file\":\"/ECLUWlTxguROgQ/urZncjo\",\"timestamp\":\"1982-07-17 03:48:10 +0000\"}", "{\"file\":\"/MGDTjzodDLGkYALMk/ZtWxLMgSmsoo\",\"timestamp\":\"2009-07-24 11:07:00 +0000\"}", "{\"file\":\"/dUBSucaQqpjgrKeGZbLS/YqzQdcMuEOtudq/KTYbzxtAIOiyysOBgbQVtd\",\"timestamp\":\"1998-05-01 07:58:17 +0000\"}", "{\"file\":\"/okYmrTkqXNbfHZjZ/xggqmbGyzRrY/nCrYerQhuip/LSPjodfsQXOoanXNvCeOeCw\",\"timestamp\":\"2001-03-27 20:48:06 +0000\"}", "{\"file\":\"/UWZyloAkBYysnnUBnjYyj/avaOKSmBxJWdpvpapGgW\",\"timestamp\":\"2005-04-23 11:03:19 +0000\"}", "{\"file\":\"/MdAEEIpqTaKMoHRttoZCa/qPtartfZRLxcGTWXpv/uyGnbCPZAOHjpCvkFxk/QrSACEQrAWJJXmlb/laavJXgHbZoVluCFbHm\",\"timestamp\":\"2000-05-08 23:56:34 +0000\"}"]}
+:END:
+Although the user didn't appear to be visible in the region 2 listing, is it there?
+
+#+begin_src ruby :session demo :results output
+  u = URI("http://localhost:8888/2/#{region_deltas[:region1][0]}")
+  results = Net::HTTP.get(u)
+  puts results
+#+end_src
+
+Looks like it's not there.
+
+#+begin_src ruby :session demo :results output
+  u = URI("http://localhost:8888/2/#{region_deltas[:region2][0]}")
+  results = Net::HTTP.get(u)
+  puts results
+#+end_src
+
+#+name: usrinfo
+#+begin_src ruby :session demo :results output :var region="" :var uid=""
+  u = URI("http://localhost:8888/#{region}/#{uid}")
+  results = JSON.parse(Net::HTTP.get(u))
+  puts results["username"]
+  puts results["key"]
+  puts results["pw"]
+#+end_src
+
+** Investigate each delta [0/4]
+
+*** TODO rTnPLFLLngRTIzrFKZAQlhTmS
+#+CALL: usrinfo() :var uid="rTnPLFLLngRTIzrFKZAQlhTmS" :var region="1" :results output
+
+#+RESULTS:
+: rTnPLFLLngRTIzrFKZAQlhTmS
+: tXD19j
+: Jw5#1F
+
+    - [ ] The key and pw differ in region 1
+
+*** TODO tCpegcwDxHvGpMxkWNUchGZeL
+#+CALL: usrinfo() :var uid="tCpegcwDxHvGpMxkWNUchGZeL" :var region="1" :results output
+
+#+RESULTS:
+: tCpegcwDxHvGpMxkWNUchGZeL
+: kw$i7S
+: bD*w00
+
+*** TODO wJmnBYAIHgyEBbfbxJVhTpvBS
+#+CALL: usrinfo() :var uid="wJmnBYAIHgyEBbfbxJVhTpvBS" :var region="2" :results output
+
+#+RESULTS:
+: wJmnBYAIHgyEBbfbxJVhTpvBS
+: kw$i7S
+: bD*w00
+
+*** TODO xcuqGEuKYwgLURMZiJxyqgrtM
+#+CALL: usrinfo() :var uid="xcuqGEuKYwgLURMZiJxyqgrtM" :var region="2" :results output
+
+#+RESULTS:
+: xcuqGEuKYwgLURMZiJxyqgrtM
+: tXD19j
+: Jw5#1F
+
+We noticed that there were some overlap between the pw and keys for
+users with different usernames.
+
+#+name: diffusrs
+#+begin_src ruby :results output :var uid1="" :var uid2="" :session demo :tangle out.rb
+  u1 = URI("http://localhost:8888/1/#{uid1}")
+  u2 = URI("http://localhost:8888/2/#{uid2}")
+  r1 = JSON.parse(Net::HTTP.get(u1))
+  r2 = JSON.parse(Net::HTTP.get(u2))
+
+  r1.each do |k,v|
+    puts "#{k} is unequal" unless r2[k] == v
+  end
+#+end_src
+
+#+CALL: diffusrs() :var uid1="tCpegcwDxHvGpMxkWNUchGZeL" :var uid2="wJmnBYAIHgyEBbfbxJVhTpvBS" :results output
+
+#+RESULTS:
+: username is unequal
